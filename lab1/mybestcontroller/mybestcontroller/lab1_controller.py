@@ -4,7 +4,10 @@ from collections import deque
 
 import rclpy
 from rclpy.node import Node
-from turtlesim_msgs.msg import Pose
+try:
+    from turtlesim_msgs.msg import Pose  # Kilted и новее
+except ImportError:
+    from turtlesim.msg import Pose  # Jazzy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 
@@ -141,7 +144,6 @@ class Lab1Controller(Node):
                 self.result_timer = self.create_timer(1.0, self.publish_result)
 
     def follower_step(self):
-        
         while self.path and math.hypot(self.path[0][0] - self.pose.x,
                                        self.path[0][1] - self.pose.y) < self.distance_tolerance:
             self.path.popleft()
