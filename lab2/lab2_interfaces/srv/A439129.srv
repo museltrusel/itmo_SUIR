@@ -1,0 +1,7 @@
+float64 x_current
+float64 y_current
+---
+float64 distance
+float64 angle
+bool success
+bool complete
