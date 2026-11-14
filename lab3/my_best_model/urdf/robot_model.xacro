@@ -5,7 +5,7 @@
     <xacro:include filename="$(find my_best_model)/urdf/wheel.xacro" />
     <xacro:include filename="$(find my_best_model)/urdf/inertial.xacro" />
 
-    <!-- Вариант 9 — 9 звеньев, шарниры RPRC CC, база 220x160x90 мм -->
+    <!-- Вариант 9 — манипулятор из 9 звеньев с шарнирами RPRC, колёса CC, база 220x160x90 мм -->
 
     <!-- Мобильная база -->
     <xacro:property name="base_length" value="0.22"/>
@@ -24,12 +24,16 @@
     <xacro:property name="link2_size" value="0.025"/>
     <xacro:property name="link2_length" value="0.08"/>
     <xacro:property name="link2_stroke" value="0.06"/>
+    <xacro:property name="shoulder_radius" value="0.015"/>
+    <xacro:property name="shoulder_offset" value="0.015"/>
     <xacro:property name="link3_size" value="0.02"/>
     <xacro:property name="link3_length" value="0.10"/>
     <xacro:property name="link4_radius" value="0.012"/>
     <xacro:property name="link4_length" value="0.03"/>
+    <xacro:property name="flange_radius" value="0.018"/>
+    <xacro:property name="flange_length" value="0.006"/>
 
-    <!-- 1. base_link — корпус и опорный шар -->
+    <!-- Мобильная база. base_link — корпус и опорный шар -->
     <link name='base_link'>
         <visual name='base_visual'>
             <origin xyz="0.0 0.0 ${base_z}" rpy="0.0 0.0 0.0"/>
@@ -72,13 +76,15 @@
         </visual>
     </link>
 
-    <!-- 2, 3. Колёса — шарниры C C -->
+    <!-- Колёса — шарниры C C -->
     <xacro:wheel side="left" x="0.05" y="${base_width/2 + wheel_length/2 + 0.005}" z="${wheel_radius}"
                  radius="${wheel_radius}" length="${wheel_length}"/>
     <xacro:wheel side="right" x="0.05" y="${-(base_width/2 + wheel_length/2 + 0.005)}" z="${wheel_radius}"
                  radius="${wheel_radius}" length="${wheel_length}"/>
 
-    <!-- 4. Основание манипулятора, жёстко закреплено на крыше базы -->
+    <!-- Манипулятор — одна цепь из 9 звеньев, подвижные шарниры R, P, R, C -->
+
+    <!-- Звено 1. Основание манипулятора, жёстко закреплено на крыше базы -->
     <link name='arm_base_link'>
         <visual name='arm_base_visual'>
             <origin xyz="0 0 ${mount_height/2}" rpy="0 0 0"/>
@@ -103,7 +109,7 @@
         <child link="arm_base_link"/>
     </joint>
 
-    <!-- 5. Звено 1, шарнир R — поворот вокруг вертикали -->
+    <!-- Звено 2, шарнир R — поворот вокруг вертикали -->
     <link name='arm_link1'>
         <visual name='arm_link1_visual'>
             <origin xyz="0 0 ${link1_length/2}" rpy="0 0 0"/>
@@ -130,7 +136,7 @@
         <limit lower="${-pi}" upper="${pi}" effort="10" velocity="1.0"/>
     </joint>
 
-    <!-- 6. Звено 2, шарнир P — телескопический подъём вверх, нижняя часть уходит внутрь звена 1 -->
+    <!-- Звено 3, шарнир P — телескопический подъём вверх, нижняя часть уходит внутрь звена 2 -->
     <link name='arm_link2'>
         <visual name='arm_link2_visual'>
             <origin xyz="0 0 ${(link2_length - link2_stroke)/2}" rpy="0 0 0"/>
@@ -157,7 +163,32 @@
         <limit lower="0.0" upper="${link2_stroke}" effort="10" velocity="0.1"/>
     </joint>
 
-    <!-- 7. Звено 3, шарнир R — наклон вверх-вниз -->
+    <!-- Звено 4. Кронштейн плечевого шарнира, жёстко закреплён на звене 3 -->
+    <link name='shoulder_link'>
+        <visual name='shoulder_visual'>
+            <origin xyz="0 0 ${shoulder_offset}" rpy="${pi/2} 0 0"/>
+            <geometry>
+                <cylinder radius="${shoulder_radius}" length="${link2_size + 0.01}"/>
+            </geometry>
+            <material name="grey"/>
+        </visual>
+        <xacro:inertial_cylinder mass="0.02" length="${link2_size + 0.01}" radius="${shoulder_radius}">
+            <origin xyz="0 0 ${shoulder_offset}" rpy="${pi/2} 0 0"/>
+        </xacro:inertial_cylinder>
+        <collision>
+            <origin xyz="0 0 ${shoulder_offset}" rpy="${pi/2} 0 0"/>
+            <geometry>
+                <cylinder radius="${shoulder_radius}" length="${link2_size + 0.01}"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="shoulder_joint" type="fixed">
+        <origin xyz="0 0 ${link2_length}" rpy="0 0 0"/>
+        <parent link="arm_link2"/>
+        <child link="shoulder_link"/>
+    </joint>
+
+    <!-- Звено 5, шарнир R — наклон плеча вверх-вниз -->
     <link name='arm_link3'>
         <visual name='arm_link3_visual'>
             <origin xyz="${link3_length/2} 0 0" rpy="0 0 0"/>
@@ -177,14 +208,14 @@
         </collision>
     </link>
     <joint name="arm_joint3" type="revolute">
-        <origin xyz="0 0 ${link2_length}" rpy="0 0 0"/>
-        <parent link="arm_link2"/>
+        <origin xyz="0 0 ${shoulder_offset}" rpy="0 0 0"/>
+        <parent link="shoulder_link"/>
         <child link="arm_link3"/>
         <axis xyz="0 1 0"/>
         <limit lower="${-pi/2}" upper="${pi/2}" effort="10" velocity="1.0"/>
     </joint>
 
-    <!-- 8. Звено 4, шарнир C — вращение кисти без ограничений -->
+    <!-- Звено 6, шарнир C — вращение кисти без ограничений -->
     <link name='arm_link4'>
         <visual name='arm_link4_visual'>
             <origin xyz="${link4_length/2} 0 0" rpy="0 ${pi/2} 0"/>
@@ -211,12 +242,51 @@
         <limit effort="10" velocity="2.0"/>
     </joint>
 
-    <!-- 9. Схват, жёстко закреплён на конце кисти -->
+    <!-- Звено 7. Фланец кисти, к нему крепится схват -->
+    <link name='flange_link'>
+        <visual name='flange_visual'>
+            <origin xyz="${flange_length/2} 0 0" rpy="0 ${pi/2} 0"/>
+            <geometry>
+                <cylinder radius="${flange_radius}" length="${flange_length}"/>
+            </geometry>
+            <material name="grey"/>
+        </visual>
+        <xacro:inertial_cylinder mass="0.01" length="${flange_length}" radius="${flange_radius}">
+            <origin xyz="${flange_length/2} 0 0" rpy="0 ${pi/2} 0"/>
+        </xacro:inertial_cylinder>
+        <collision>
+            <origin xyz="${flange_length/2} 0 0" rpy="0 ${pi/2} 0"/>
+            <geometry>
+                <cylinder radius="${flange_radius}" length="${flange_length}"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="flange_joint" type="fixed">
+        <origin xyz="${link4_length} 0 0" rpy="0 0 0"/>
+        <parent link="arm_link4"/>
+        <child link="flange_link"/>
+    </joint>
+
+    <!-- Звено 8. Схват — основание и два неподвижных пальца -->
     <link name='gripper_link'>
-        <visual name='gripper_visual'>
+        <visual name='gripper_palm_visual'>
             <origin xyz="0.005 0 0" rpy="0 0 0"/>
             <geometry>
                 <box size="0.01 0.05 0.015"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+        <visual name='gripper_finger_left_visual'>
+            <origin xyz="0.025 0.02 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.03 0.006 0.012"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+        <visual name='gripper_finger_right_visual'>
+            <origin xyz="0.025 -0.02 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.03 0.006 0.012"/>
             </geometry>
             <material name="red"/>
         </visual>
@@ -231,9 +301,28 @@
         </collision>
     </link>
     <joint name="gripper_joint" type="fixed">
-        <origin xyz="${link4_length} 0 0" rpy="0 0 0"/>
-        <parent link="arm_link4"/>
+        <origin xyz="${flange_length} 0 0" rpy="0 0 0"/>
+        <parent link="flange_link"/>
         <child link="gripper_link"/>
+    </joint>
+
+    <!-- Звено 9. Рабочая точка инструмента (TCP) между пальцами схвата -->
+    <link name='tool_link'>
+        <visual name='tool_visual'>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="0.004"/>
+            </geometry>
+            <material name="green"/>
+        </visual>
+        <xacro:inertial_sphere mass="0.001" radius="0.004">
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:inertial_sphere>
+    </link>
+    <joint name="tool_joint" type="fixed">
+        <origin xyz="0.03 0 0" rpy="0 0 0"/>
+        <parent link="gripper_link"/>
+        <child link="tool_link"/>
     </joint>
 
 </robot>

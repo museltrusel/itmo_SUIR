@@ -3,7 +3,7 @@
 <package format="3">
   <name>my_best_model</name>
   <version>0.0.0</version>
-  <description>Python robot-model package skeleton for laboratory work 3.</description>
+  <description>Mobile robot with RPRC manipulator, laboratory work 3 (variant 9).</description>
   <maintainer email="museltrusel@example.com">museltrusel</maintainer>
   <license>Apache-2.0</license>
 

@@ -34,7 +34,7 @@ setup(
     zip_safe=True,
     maintainer='museltrusel',
     maintainer_email='museltrusel@example.com',
-    description='Python robot-model package skeleton for laboratory work 3.',
+    description='Mobile robot with RPRC manipulator, laboratory work 3 (variant 9).',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
